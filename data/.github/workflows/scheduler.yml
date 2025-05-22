@@ -1,22 +1,42 @@
-name: AQI Crawler
+name: AQI Data Crawler
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour
+    - cron: '0 * * * *'  # Run at the start of every hour
   workflow_dispatch:
 
 jobs:
-  run:
+  crawl-and-merge:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Install dependencies
         run: |
-          pip install playwright
+          pip install -r requirements.txt
           playwright install
-      - name: Run script
-        run: python your_script.py
+
+      - name: Run AQI crawler script
+        run: python aqi_scraper.py  # Make sure this writes to `latest_aqi_snapshot.csv`
+
+      - name: Merge new data into master CSV
+        run: |
+          python merge_csv.py  # You’ll write this script to append only new rows
+
+      - name: Commit and push updated data
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add hourly_aqi_data.csv
+          git commit -m "Update AQI data [bot]"
+          git push
+        env:
+          # For push access
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
