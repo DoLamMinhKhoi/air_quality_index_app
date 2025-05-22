@@ -3,10 +3,10 @@ from datetime import datetime
 import csv
 import os
 
-# Define output file
-CSV_FILE = "aqi_data_multi_station.csv"
+# Output temporary file (used for merging later)
+CSV_FILE = "latest_aqi_snapshot.csv"
 
-# List of stations with names and URLs
+# List of stations and their URLs
 stations = [
     ("Phu Nhuan", "https://www.iqair.com/vietnam/ho-chi-minh-city/quan-phu-nhuan"),
     ("District 3", "https://www.iqair.com/vietnam/ho-chi-minh-city/quan-ba"),
@@ -24,20 +24,19 @@ stations = [
     ("Thu Duc", "https://www.iqair.com/vietnam/ho-chi-minh-city/thu-duc"),
 ]
 
-# Save header if CSV doesn't exist
+# Create or overwrite the temp CSV
 def init_csv():
-    if not os.path.exists(CSV_FILE):
-        with open(CSV_FILE, mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow(["Timestamp", "Station", "AQI"])
+    with open(CSV_FILE, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Timestamp", "Station", "AQI"])
 
-# Append one row to CSV
+# Write a row
 def save_to_csv(timestamp, station, aqi_value):
     with open(CSV_FILE, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow([timestamp, station, aqi_value])
 
-# Main scraping function
+# Crawl and save to temp CSV
 def fetch_all_aqi():
     init_csv()
     with sync_playwright() as p:
