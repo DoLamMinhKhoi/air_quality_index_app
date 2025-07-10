@@ -1,0 +1,30 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": { "name": "District 1" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[106.695, 10.775], [106.705, 10.775], [106.705, 10.785], [106.695, 10.785], [106.695, 10.775]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "District 3" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[106.68, 10.78], [106.69, 10.78], [106.69, 10.79], [106.68, 10.79], [106.68, 10.78]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Binh Thanh" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[106.695, 10.81], [106.705, 10.81], [106.705, 10.82], [106.695, 10.82], [106.695, 10.81]]]
+        }
+      }
+    ]
+  }
+  

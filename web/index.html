@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ho Chi Minh City Air Quality Prediction</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #BB343A 0%, #BB343A 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .filter-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .filter-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .filter-content {
+            display: none;
+            position: absolute;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1000;
+            border-radius: 8px;
+            padding: 10px;
+            top: 100%;
+            left: 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filter-content.show {
+            display: block;
+        }
+
+        .date-input, .station-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .station-select {
+            height: 150px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .predict-section {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .predict-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a5a);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .predict-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .predict-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .prediction-results {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .prediction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .prediction-item {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .aqi-good { background-color: #68d391; color: white; }
+        .aqi-moderate { background-color: #fbd38d; color: #2d3748; }
+        .aqi-unhealthy-sensitive { background-color: #fc8181; color: white; }
+        .aqi-unhealthy { background-color: #e53e3e; color: white; }
+        .aqi-very-unhealthy { background-color: #9c4221; color: white; }
+        .aqi-hazardous { background-color: #553c9a; color: white; }
+
+        .map-container {
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+            }
+            
+            .predict-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .prediction-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌬️ Ho Chi Minh City Air Quality Prediction</h1>
+            <p>Real-time air quality monitoring and 24-hour predictions</p>
+        </div>
+
+        <!-- Historical AQI Chart Section -->
+        <div class="section">
+            <h2>📊 Historical AQI Data</h2>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Date Filter:</label>
+                    <div class="filter-dropdown">
+                        <button class="filter-button" onclick="toggleFilter('date-filter')">
+                            Select Date ▼
+                        </button>
+                        <div id="date-filter" class="filter-content">
+                            <input type="date" id="date-input" class="date-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Station Filter:</label>
+                    <div class="filter-dropdown">
+                        <button class="filter-button" onclick="toggleFilter('station-filter')">
+                            Select Stations ▼
+                        </button>
+                        <div id="station-filter" class="filter-content">
+                            <select id="station-select" class="station-select" multiple>
+                                <option value="District 1">District 1</option>
+                                <option value="District 2">District 2</option>
+                                <option value="District 3">District 3</option>
+                                <option value="District 6">District 6</option>
+                                <option value="District 7">District 7</option>
+                                <option value="District 9">District 9</option>
+                                <option value="District 10">District 10</option>
+                                <option value="District 11">District 11</option>
+                                <option value="Phu Nhuan">Phu Nhuan</option>
+                                <option value="Thu Duc">Thu Duc</option>
+                                <option value="Binh Thanh">Binh Thanh</option>
+                                <option value="Tan Phu">Tan Phu</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="predict-button" onclick="filterHistoricalData()">
+                    Apply Filters
+                </button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="historicalChart"></canvas>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="status-indicator aqi-good"></div>
+                    <span>Good (0-50)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-moderate"></div>
+                    <span>Moderate (51-100)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-unhealthy-sensitive"></div>
+                    <span>Unhealthy for Sensitive (101-150)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-unhealthy"></div>
+                    <span>Unhealthy (151-200)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-very-unhealthy"></div>
+                    <span>Very Unhealthy (201-300)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-hazardous"></div>
+                    <span>Hazardous (300+)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Section -->
+        <div class="section">
+            <h2>🔮 24-Hour AQI Prediction</h2>
+            <div class="predict-section">
+                <button class="predict-button" onclick="predictAQI()" id="predict-btn">
+                    Predict Next 24 Hours
+                </button>
+                <div class="prediction-results">
+                    <div id="prediction-output">
+                        <p>Select a station from the historical data filter and click "Predict" to see 24-hour AQI forecasts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ho Chi Minh City Map Section -->
+        <div class="section">
+            <h2>🗺️ Current AQI Map - Ho Chi Minh City</h2>
+            <div id="map" class="map-container"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="status-indicator aqi-good"></div>
+                    <span>Good (0-50)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-moderate"></div>
+                    <span>Moderate (51-100)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-unhealthy-sensitive"></div>
+                    <span>Unhealthy for Sensitive (101-150)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-unhealthy"></div>
+                    <span>Unhealthy (151-200)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-very-unhealthy"></div>
+                    <span>Very Unhealthy (201-300)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="status-indicator aqi-hazardous"></div>
+                    <span>Hazardous (300+)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let historicalChart;
+        let map;
+
+        // AQI color mapping
+        function getAQIColor(aqi) {
+            if (aqi <= 50) return '#68d391'; // Good
+            if (aqi <= 100) return '#fbd38d'; // Moderate
+            if (aqi <= 150) return '#fc8181'; // Unhealthy for Sensitive
+            if (aqi <= 200) return '#e53e3e'; // Unhealthy
+            if (aqi <= 300) return '#9c4221'; // Very Unhealthy
+            return '#553c9a'; // Hazardous
+        }
+
+        function getAQIClass(aqi) {
+            if (aqi <= 50) return 'aqi-good';
+            if (aqi <= 100) return 'aqi-moderate';
+            if (aqi <= 150) return 'aqi-unhealthy-sensitive';
+            if (aqi <= 200) return 'aqi-unhealthy';
+            if (aqi <= 300) return 'aqi-very-unhealthy';
+            return 'aqi-hazardous';
+        }
+
+        // Toggle filter dropdowns
+        function toggleFilter(filterId) {
+            const filter = document.getElementById(filterId);
+            filter.classList.toggle('show');
+            
+            // Close other filters
+            const allFilters = document.querySelectorAll('.filter-content');
+            allFilters.forEach(f => {
+                if (f.id !== filterId) {
+                    f.classList.remove('show');
+                }
+            });
+        }
+
+        // Close filters when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.filter-button')) {
+                const dropdowns = document.getElementsByClassName('filter-content');
+                for (let i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+
+        // Initialize historical chart
+        function initHistoricalChart() {
+            const ctx = document.getElementById('historicalChart').getContext('2d');
+            historicalChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'nearest',
+                            intersect: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return `Time: ${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    return `${context.dataset.label}: AQI ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'AQI Value'
+                            },
+                            min: 0
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        // Filter historical data
+        async function filterHistoricalData() {
+            const date = document.getElementById('date-input').value;
+            const stationSelect = document.getElementById('station-select');
+            const selectedStations = Array.from(stationSelect.selectedOptions).map(option => option.value);
+
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+
+            if (selectedStations.length === 0) {
+                alert('Please select at least one station');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/historical-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        stations: selectedStations
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                updateHistoricalChart(data);
+            } catch (error) {
+                console.error('Error fetching historical data:', error);
+                document.getElementById('historicalChart').parentElement.innerHTML = 
+                    `<div class="error-message">Error loading historical data: ${error.message}</div>`;
+            }
+        }
+
+        // Update historical chart
+        function updateHistoricalChart(data) {
+            const labels = data.timestamps;
+            const datasets = data.stations.map(station => ({
+                label: station.name,
+                data: station.values,
+                borderColor: getAQIColor(station.values[0] || 50),
+                backgroundColor: getAQIColor(station.values[0] || 50) + '20',
+                pointBackgroundColor: station.values.map(val => getAQIColor(val)),
+                pointBorderColor: station.values.map(val => getAQIColor(val)),
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                tension: 0.4
+            }));
+
+            historicalChart.data.labels = labels;
+            historicalChart.data.datasets = datasets;
+            historicalChart.update();
+        }
+
+        // Predict AQI for next 24 hours
+        async function predictAQI() {
+            const stationSelect = document.getElementById('station-select');
+            const selectedStations = Array.from(stationSelect.selectedOptions).map(option => option.value);
+
+            if (selectedStations.length === 0) {
+                alert('Please select a station from the historical data filter first');
+                return;
+            }
+
+            const station = selectedStations[0]; // Use first selected station
+            const predictBtn = document.getElementById('predict-btn');
+            const output = document.getElementById('prediction-output');
+
+            predictBtn.disabled = true;
+            predictBtn.innerHTML = '<span class="loading"></span> Predicting...';
+            
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        station: station
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                displayPredictions(data.predictions, station);
+            } catch (error) {
+                console.error('Error predicting AQI:', error);
+                output.innerHTML = `<div class="error-message">Error predicting AQI: ${error.message}</div>`;
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.innerHTML = 'Predict Next 24 Hours';
+            }
+        }
+
+        // Display predictions
+        function displayPredictions(predictions, station) {
+            const output = document.getElementById('prediction-output');
+            
+            let html = `<h3>24-Hour AQI Predictions for ${station}</h3>`;
+            html += '<div class="prediction-grid">';
+            
+            predictions.forEach((aqi, index) => {
+                const hour = index + 1;
+                const aqiClass = getAQIClass(aqi);
+                html += `
+                    <div class="prediction-item ${aqiClass}">
+                        <div>+${hour}h</div>
+                        <div>${Math.round(aqi)}</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            output.innerHTML = html;
+        }
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([10.8231, 106.6297], 11);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            loadCurrentAQIData();
+        }
+
+        // Load current AQI data for map
+        async function loadCurrentAQIData() {
+            try {
+                const response = await fetch('/api/current-aqi');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                displayAQIOnMap(data);
+            } catch (error) {
+                console.error('Error loading current AQI data:', error);
+                document.getElementById('map').innerHTML = 
+                    `<div class="error-message" style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                        Error loading current AQI data: ${error.message}
+                    </div>`;
+            }
+        }
+
+        // Display AQI data on map
+        function displayAQIOnMap(aqiData) {
+            console.log("AQI Data:", aqiData);
+
+            // Station coordinates
+            const stationCoords = {
+                "District 1": [10.7725, 106.7025],
+                "District 2": [10.779354, 106.751480],
+                "District 3": [10.782537, 106.683256],
+                "District 6": [10.7547, 106.6500],
+                "District 7": [10.745781, 106.714925],
+                "District 9": [10.854345, 106.810686],
+                "District 10": [10.7708, 106.6642],
+                "District 11": [10.7653, 106.6414],
+                "Thu Duc": [10.871060042695095, 106.82620433685366],
+                "Binh Thanh": [10.8167, 106.7000],
+                "Tan Phu": [10.7817, 106.6111]
+            };
+
+            // Add markers for stations with real data
+            Object.entries(aqiData.stations).forEach(([station, aqi]) => {
+                if (stationCoords[station]) {
+                    const [lat, lng] = stationCoords[station];
+                    const color = getAQIColor(aqi);
+                    
+                    L.circleMarker([lat, lng], {
+                        radius: 15,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map)
+                    .bindPopup(`
+                        <strong>${station}</strong><br>
+                        AQI: ${Math.round(aqi)}<br>
+                        Status: ${getAQIStatus(aqi)}
+                    `);
+                }
+            });
+
+            // Add markers for predicted districts
+            if (aqiData.predicted) {
+                const predictedCoords = {
+                    "District 4": [10.7550, 106.7050],
+                    "District 5": [10.7574, 106.6739],
+                    "District 8": [10.7350, 106.6650],
+                    "District 12": [10.8500, 106.6500],
+                    "Phu Nhuan": [10.8000, 106.6667],
+                    "Tan Binh": [10.8100, 106.6500],
+                    "Binh Tan": [10.7600, 106.6000],
+                    "Go Vap": [10.8300, 106.6600]
+                };
+
+                Object.entries(aqiData.predicted).forEach(([district, aqi]) => {
+                    if (predictedCoords[district]) {
+                        const [lat, lng] = predictedCoords[district];
+                        const color = getAQIColor(aqi);
+                        
+                        L.circleMarker([lat, lng], {
+                            radius: 12,
+                            fillColor: color,
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 0.7,
+                            fillOpacity: 0.6
+                        }).addTo(map)
+                        .bindPopup(`
+                            <strong>${district}</strong><br>
+                            AQI: ${Math.round(aqi)} (Predicted)<br>
+                            Status: ${getAQIStatus(aqi)}
+                        `);
+                    }
+                });
+            }
+        }
+
+        function getAQIStatus(aqi) {
+            if (aqi <= 50) return 'Good';
+            if (aqi <= 100) return 'Moderate';
+            if (aqi <= 150) return 'Unhealthy for Sensitive';
+            if (aqi <= 200) return 'Unhealthy';
+            if (aqi <= 300) return 'Very Unhealthy';
+            return 'Hazardous';
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initHistoricalChart();
+            initMap();
+            
+            // Set default date to today
+            document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

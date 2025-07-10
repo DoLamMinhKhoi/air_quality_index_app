@@ -1,0 +1,137 @@
+/* Global styles */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 40px 0;
+}
+
+h1, h2 {
+    color: #2c3e50;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h2 {
+    margin-top: 3rem;
+    font-size: 1.75rem;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #555;
+    margin-bottom: 2rem;
+}
+
+/* Section layout */
+.section {
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Form elements */
+label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+input[type="date"],
+select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-right: 1rem;
+    font-size: 1rem;
+}
+
+/* AQI Level Colors */
+.aqi-good {
+    color: #009966;
+}
+
+.aqi-moderate {
+    color: #ffde33;
+}
+
+.aqi-unhealthy-sensitive {
+    color: #ff9933;
+}
+
+.aqi-unhealthy {
+    color: #cc0033;
+}
+
+/* AQI value boxes */
+.aqi-box {
+    display: inline-block;
+    text-align: center;
+    margin: 5px;
+    padding: 10px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: bold;
+    min-width: 50px;
+}
+
+.aqi-good-box {
+    background-color: #009966;
+}
+
+.aqi-moderate-box {
+    background-color: #ffde33;
+    color: #000;
+}
+
+.aqi-unhealthy-sensitive-box {
+    background-color: #ff9933;
+}
+
+.aqi-unhealthy-box {
+    background-color: #cc0033;
+}
+
+/* Chart.js canvas */
+#aqiChart {
+    width: 100%;
+    max-height: 400px;
+}
+
+/* Map container */
+#map {
+    width: 100%;
+    height: 600px;
+    border-radius: 12px;
+    margin-top: 1rem;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    #map {
+        height: 400px;
+    }
+}
